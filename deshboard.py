@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the dataset
-st.cache_resource
+@st.cache_data
 def load_data():
     data = pd.read_excel('Treated_df.xlsx')
     data['Start'] = pd.to_datetime(data['Start'])
@@ -45,27 +45,35 @@ else:
 
 # Displaying application data consumption
 st.header('Application Data Consumption')
-st.bar_chart(app_data)
+if not app_data.empty:
+    st.bar_chart(app_data)
+else:
+    st.write("No application data available for the selected date range.")
 
 # Displaying data for selected user
 st.header(f'Data Consumption for User: {selected_id}')
 user_data = filtered_data[filtered_data['MSISDN/Number'] == selected_id]
 if not user_data.empty:
     st.write(f'Total Data (Bytes): {user_data["Total Data (Bytes)"].sum()}')
-    
 else:
     st.write("No data available for the selected user.")
 
+# Correlation Heatmap
 st.header('Correlation Heatmap of Numeric Features')
-# Select numeric features for correlation analysis
 numeric_features = ['Total UL (Bytes)', 'Total DL (Bytes)', 'Dur. (ms)', 'Youtube DL (Bytes)', 'Netflix DL (Bytes)', 'Gaming DL (Bytes)']
-# Calculate correlation matrix
-corr_matrix = filtered_data[numeric_features].corr()
-# Generate a heatmap
-plt.figure(figsize=(10, 6))
-sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', linewidths=.5)
-st.pyplot(plt)
+if not filtered_data.empty:
+    available_features = [feature for feature in numeric_features if feature in filtered_data.columns]
+    if available_features:
+        corr_matrix = filtered_data[available_features].corr()
+        plt.figure(figsize=(10, 6))
+        sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', linewidths=.5)
+        st.pyplot(plt)
+    else:
+        st.write("No numeric data available for the selected date range.")
+else:
+    st.write("No data available for the selected date range.")
 
+# Application Data Consumption Bar Plot
 st.header('Application Data Consumption')
 fig, ax = plt.subplots()
 app_data.plot(kind='bar', ax=ax, colormap='viridis')
@@ -73,13 +81,14 @@ ax.set_ylabel('Bytes')
 ax.set_title('Data Consumption by Application')
 st.pyplot(fig)
 
-
+# Top 10 Users by Data Consumption
 st.header('Top 10 Users by Data Consumption')
-top_users = filtered_data.groupby('MSISDN/Number')['Total Data (Bytes)'].sum().nlargest(10)
-fig, ax = plt.subplots()
-top_users.plot(kind='barh', ax=ax, color=sns.color_palette('magma', len(top_users)))
-ax.set_xlabel('Total Data (Bytes)')
-ax.set_title('Top 10 Users by Data Consumption')
-st.pyplot(fig)
-
-
+if not filtered_data.empty:
+    top_users = filtered_data.groupby('MSISDN/Number')['Total Data (Bytes)'].sum().nlargest(10)
+    fig, ax = plt.subplots()
+    top_users.plot(kind='barh', ax=ax, color=sns.color_palette('magma', len(top_users)))
+    ax.set_xlabel('Total Data (Bytes)')
+    ax.set_title('Top 10 Users by Data Consumption')
+    st.pyplot(fig)
+else:
+    st.write("No data available for the selected date range.")
